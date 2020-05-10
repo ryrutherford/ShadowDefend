@@ -2,6 +2,7 @@ import bagel.*;
 import bagel.Image;
 import bagel.Window;
 import bagel.map.TiledMap;
+import bagel.util.Colour;
 import bagel.util.Point;
 import bagel.util.Vector2;
 
@@ -15,10 +16,19 @@ public class ShadowDefend extends AbstractGame {
     private static final int HEIGHT = 768;
     private static final int WIDTH = 1024;
 
+
     //attributes
     /*
     map: the tmx map with the polylines
     slicer: the slicer image
+    buyPanel: the background image for the buy panel
+    status panel: the background image for the status panel
+    cash: the variable that tracks the amount of cash available to the user
+    defaultTextFont: the font used in the status panel and for the prices of towers and the key binds in the buy panel
+    cashFont: the font used to for the available cash
+    wave: tracks which wave the user is on
+    status: the string to be displayed to the user indicating the current status of the game
+    lives: the number of lives the user has left
     framesPassed: represents the number of theoretical frames that have passed since s was pressed
     sWasPressed: represents whether the user has pressed s or not
     timeScaleMultiplier: represents the speed at which the frame rate should theoretically increase (doesn't actually increase update rate)
@@ -28,8 +38,16 @@ public class ShadowDefend extends AbstractGame {
     pathAngle: a list of the angle that the slicer should have, same length as the path list
     lengthOfPath: keeps track of the length of the path list (for convenience)
      */
-    private final TiledMap map;
-    private final Image slicer;
+    private final TiledMap map = new TiledMap("res/levels/1.tmx");
+    private final Image slicer = new Image("res/images/slicer.png");
+    private final Image buyPanel = new Image("res/images/buypanel.png");
+    private final Image statusPanel = new Image("res/images/statuspanel.png");
+    private int cash;
+    private final Font defaultTextFont = new Font("res/fonts/DejaVuSans-Bold.ttf", 16);
+    private final Font cashFont = new Font("res/fonts/DejaVuSans-Bold.ttf", 36);
+    private int wave;
+    private String status;
+    private int lives;
     private int framesPassed;
     private boolean sWasPressed;
     private int timescaleMultiplier;
@@ -42,10 +60,18 @@ public class ShadowDefend extends AbstractGame {
     //constructor
     public ShadowDefend() {
         super(WIDTH, HEIGHT, "ShadowDefend");
-        this.map = new TiledMap("res/levels/2.tmx");
-        this.slicer = new Image("res/images/slicer.png");
         this.timescaleMultiplier = 1;
 
+        //wave is initially 1 because that will be the first wave to come
+        this.wave = 1;
+
+        //status is initially awaiting start because that is how the game begins
+        this.status = "Awaiting Start";
+
+        //TODO: use the real number of lives once Rohyl confirms it
+        this.lives = 25;
+
+        //TODO: convert this statement to use a Path object
         generatePath(this.map.getAllPolylines().get(0));
         lengthOfPath = this.path.size();
 
@@ -113,26 +139,71 @@ public class ShadowDefend extends AbstractGame {
         }
     }
 
+    //method to draw the buy panel on the screen
+    private void drawBuyPanel(){
+        buyPanel.drawFromTopLeft(0,0);
+        //drawing the purchase items
+        new Image("res/images/tank.png").draw(64, 40);
+        new Image("res/images/supertank.png").draw(184, 40);
+        new Image("res/images/airsupport.png").draw(304, 40);
+
+        //drawing the purchase items price
+        this.defaultTextFont.drawString("$250", 44,85, new DrawOptions().setBlendColour(
+                this.cash < 250 ? Colour.RED : Colour.GREEN));
+        this.defaultTextFont.drawString("$600", 164,85, new DrawOptions().setBlendColour(
+                this.cash < 600 ? Colour.RED : Colour.GREEN));
+        this.defaultTextFont.drawString("$500", 284,85, new DrawOptions().setBlendColour(
+                this.cash < 500 ? Colour.RED : Colour.GREEN));
+        //drawing the available cash
+        this.cashFont.drawString(String.format("$%,d", cash), Window.getWidth() - 200, 65);
+
+        //drawing the key binds
+        this.defaultTextFont.drawString("Key Binds:\nS - Start Wave\nL - Increase Timescale\nK - Decrease Timescale",
+                Window.getWidth()/2 - 30, 15);
+    }
+
+    private void drawStatusPanel(){
+        statusPanel.drawFromTopLeft(0, Window.getHeight() - 25);
+
+        //drawing the wave status
+        this.defaultTextFont.drawString("Wave: " + this.wave, 6, Window.getHeight() - 6);
+
+        //drawing the timescale status
+        this.defaultTextFont.drawString("Time Scale: " + this.timescaleMultiplier, 256, Window.getHeight() - 6,
+                new DrawOptions().setBlendColour(this.timescaleMultiplier <= 1.0 ? Colour.WHITE : Colour.GREEN));
+
+        //drawing the current status
+        this.defaultTextFont.drawString("Status: " + this.status, 460, Window.getHeight() - 6);
+
+        //drawing the lives remaining
+        this.defaultTextFont.drawString("Lives: " + this.lives, Window.getWidth() - 100, Window.getHeight() - 6);
+    }
+
     @Override
     protected void update(Input input) {
+
+        //drawing the map
         map.draw(0, 0, 0, 0, Window.getWidth(), Window.getHeight());
 
+        drawBuyPanel();
+        drawStatusPanel();
         //if the user presses S then we need to start sending out slicers
         if(input.wasPressed(Keys.S)){
             //the sWasPressed attribute will be set to true
             this.sWasPressed = true;
+            this.status = "Wave In Progress";
         }
         //if sWasPressed then we start drawing slicers
         if(sWasPressed) {
 
-            //if the user presses l then we need to double the speed of the game
+            //if the user presses l then we need to increase the speed of the game
             if(input.wasPressed(Keys.L)){
-                this.timescaleMultiplier *= 2;
+                this.timescaleMultiplier++;
             }
-            //if the user presses k then we need to halve the speed of the game as long as the speed is not already 1
+            //if the user presses k then we need to decrease the speed of the game as long as the speed is not already 1
             if(input.wasPressed(Keys.K)){
                 if(this.timescaleMultiplier != 1)
-                    this.timescaleMultiplier /= 2;
+                    this.timescaleMultiplier--;
             }
 
             for(int i = 0; i < 5; i++){
@@ -142,7 +213,7 @@ public class ShadowDefend extends AbstractGame {
                 drawSlicer(pathIndex, i);
             }
             //updating the number of framesPassed.
-            // if timeScaleMultiplier is > 1 we "double" the frame rate to double the speed
+            // if timeScaleMultiplier is > 1 we "increase" the frame rate to increase the speed
             this.framesPassed += timescaleMultiplier;
         }
     }
