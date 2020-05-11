@@ -3,9 +3,9 @@ import bagel.Image;
 import bagel.Window;
 import bagel.map.TiledMap;
 import bagel.util.Colour;
-import bagel.util.Point;
-import bagel.util.Vector2;
-
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -39,7 +39,6 @@ public class ShadowDefend extends AbstractGame {
     lengthOfPath: keeps track of the length of the path list (for convenience)
      */
     private final TiledMap map = new TiledMap("res/levels/1.tmx");
-    private final Image slicer = new Image("res/images/slicer.png");
     private final Image buyPanel = new Image("res/images/buypanel.png");
     private final Image statusPanel = new Image("res/images/statuspanel.png");
     private int cash;
@@ -51,92 +50,81 @@ public class ShadowDefend extends AbstractGame {
     private int framesPassed;
     private boolean sWasPressed;
     private int timescaleMultiplier;
-    private List<Point> slicerPoints;
-    private List<Integer> slicerIndex;
-    private List<Point> path;
-    private List<Double> pathAngle;
-    private int lengthOfPath;
+    private List<Slicer> slicers;
+    private Path path;
+    private int level;
 
     //constructor
-    public ShadowDefend() {
+    public ShadowDefend(String filename) {
         super(WIDTH, HEIGHT, "ShadowDefend");
         this.timescaleMultiplier = 1;
 
         //wave is initially 1 because that will be the first wave to come
         this.wave = 1;
 
+        //level is initially 1 because that will be the first level
+        this.level = 1;
+
         //status is initially awaiting start because that is how the game begins
         this.status = "Awaiting Start";
 
-        //TODO: use the real number of lives once Rohyl confirms it
         this.lives = 25;
 
-        //TODO: convert this statement to use a Path object
-        generatePath(this.map.getAllPolylines().get(0));
-        lengthOfPath = this.path.size();
+        //creating the path object
+        this.path = new Path(this.map.getAllPolylines().get(0));
 
-        //initializing the slicer points with the starting point on the map
-        this.slicerPoints = new ArrayList<Point>(5);
-        this.slicerIndex = new ArrayList<Integer>(5);
-        for(int i = 0; i < 5; i++) {
-            //initializing each slicer point with the first point on the polyline
-            this.slicerPoints.add(this.path.get(0));
-            //initializing each slicer index with 0 since that is where each slicer will start on the path
-            this.slicerIndex.add(0);
-        }
+        //initializing the list of slicers from the waves.txt file
+        initializeSlicersFromText(filename);
     }
 
-    //a method that will generate a path that traverses the polyline where each consecutive point is 1 pixel apart
-    private void generatePath(List<Point> polyline){
-        this.path = new ArrayList<>();
-        this.pathAngle = new ArrayList<>();
+    //method to initialize the slicers list with slicers based on a text file
+    private void initializeSlicersFromText(String filename){
+        BufferedReader fileReader = null;
+        this.slicers = new ArrayList<Slicer>();
+        try{
+            //the file reader and the current line of the file
+            fileReader = new BufferedReader(new FileReader(filename));
+            String currentLine;
 
-        //iterate over all the points in the polyline up until the second last point
-        for(int i = 0; i < polyline.size() - 1; i++){
-            //getting the first point and the point after it in the polyline
-            Point p1 = polyline.get(i);
-            Point p2 = polyline.get(i+1);
+            //a variable that tracks the delay in FRAMES from delay events
+            int delay = 0;
 
-            //turning these points into vectors respectively
-            Vector2 v1 = new Vector2(p1.x, p1.y);
-            Vector2 v2 = new Vector2(p2.x, p2.y);
-
-            //finding the vector between the two points using vector subtraction
-            Vector2 betweenPoints = v2.sub(v1);
-
-            //unit vector pointing east
-            Vector2 unitEast = new Vector2(1, 0);
-            Vector2 unitDir = betweenPoints.normalised();
-
-            //to compute the angle that the slicer should be facing:
-            //if the y coord of the betweenPoints vector is negative => find the angle between unitEast and unitDir and flip the sign
-            //otherwise just find the angle between unitEat and unitDir
-            double angle = unitDir.y < 0 ? -Math.acos(unitEast.dot(unitDir)) : Math.acos(unitEast.dot(unitDir));
-
-            //we will add the normalized vector betweenPoints (v2 - v1) to v1 repeatedly until we have reached sufficiently close to v2 (within 1 pixel)
-            //we will know when we are within sufficient distance by calculating the distance between v1 and v2 as follows
-            double distance = Math.sqrt(Math.pow(v1.asPoint().x - v2.asPoint().x, 2) + Math.pow(v1.asPoint().y - v2.asPoint().y, 2));
-
-            //while the distance is more than 1 pixel we will add Points to the path
-            while(distance > 1.0){
-
-                //we add v1 to the path as a point
-                this.path.add(v1.asPoint());
-
-                //adding the normalized betweenPoints vector to v1
-                //we normalize it because then it will have a magnitude of 1 pixel
-                Vector2 v1Added = v1.add(betweenPoints.normalised());
-
-                //update v1
-                v1 = v1Added;
-
-                //adding the angle to the pathAngle list
-                this.pathAngle.add(angle);
-                //recalculate the distance based on the updated v1
-                distance = Math.sqrt(Math.pow(v1.asPoint().x - v2.asPoint().x, 2) + Math.pow(v1.asPoint().y - v2.asPoint().y, 2));
+            //while we have not reached the end of file we will use each line in the file to create slicers or update delay
+            while((currentLine = fileReader.readLine()) != null){
+                String[] waveEvent = currentLine.split(",");
+                int wave = Integer.parseInt(waveEvent[0]);
+                String eventType = waveEvent[1];
+                switch(eventType){
+                    case "spawn":
+                        int numSlicers = Integer.parseInt(waveEvent[2]);
+                        String slicerType = waveEvent[3];
+                        //spawnDelayMS is the spawnDelay in milliseconds. We will convert it to frames when we create the slicer
+                        int spawnDelayMS = Integer.parseInt(waveEvent[4]);
+                        int i;
+                        for(i = 0; i < numSlicers; i++){
+                            this.slicers.add(new Slicer(slicerType, wave, delay + 60*i*spawnDelayMS/1000));
+                        }
+                        delay += 60*(i - 1)*spawnDelayMS/1000;
+                        break;
+                    case "delay":
+                        //updating the delay based on the value in the delay event
+                        delay += 60*Integer.parseInt(waveEvent[2])/1000;
+                        break;
+                }
             }
-            //after the while loop we will have a path filled with points 1 pixel of magnitude away that will follow the polyline
         }
+        catch(IOException e){
+            this.level = - 1;
+        }
+        finally{
+            try{
+                if(fileReader != null) fileReader.close();
+            }
+            catch(IOException e){
+                e.printStackTrace();
+            }
+        }
+
     }
 
     //method to draw the buy panel on the screen
@@ -160,8 +148,22 @@ public class ShadowDefend extends AbstractGame {
         //drawing the key binds
         this.defaultTextFont.drawString("Key Binds:\nS - Start Wave\nL - Increase Timescale\nK - Decrease Timescale",
                 Window.getWidth()/2 - 30, 15);
+
+        //if sWasPressed is false then the user has either beat the game or needs to press s to start the next level
+        if(!this.sWasPressed) {
+            //if the level is not -1 then the level exists
+            if(this.level != -1) {
+                this.defaultTextFont.drawString("Press S to Start Level " + this.level,
+                        Window.getWidth() / 2 - 30, 85);
+            }
+            else{
+                this.defaultTextFont.drawString("Congratulations. You Beat the Game!",
+                        Window.getWidth() / 2 - 30, 85);
+            }
+        }
     }
 
+    //method to draw the status panel on the screen
     private void drawStatusPanel(){
         statusPanel.drawFromTopLeft(0, Window.getHeight() - 25);
 
@@ -185,13 +187,23 @@ public class ShadowDefend extends AbstractGame {
         //drawing the map
         map.draw(0, 0, 0, 0, Window.getWidth(), Window.getHeight());
 
+        //drawing the buy and status panel
         drawBuyPanel();
         drawStatusPanel();
-        //if the user presses S then we need to start sending out slicers
+
         if(input.wasPressed(Keys.S)){
-            //the sWasPressed attribute will be set to true
-            this.sWasPressed = true;
-            this.status = "Wave In Progress";
+            //if the user presses S and the level is not -1 then we need to start sending out slicers for the current level
+            if(level != -1) {
+                this.sWasPressed = true;
+                this.status = "Wave In Progress";
+            }
+            //if the level is -1 then the user beat the game so we will restart from level 1
+            else{
+                this.initializeSlicersFromText("res/levels/waves.txt");
+                this.level = 1;
+                this.status = "Wave In Progress";
+                this.sWasPressed = true;
+            }
         }
         //if sWasPressed then we start drawing slicers
         if(sWasPressed) {
@@ -206,54 +218,32 @@ public class ShadowDefend extends AbstractGame {
                     this.timescaleMultiplier--;
             }
 
-            for(int i = 0; i < 5; i++){
-                //the path index is the index in the path list that corresponds to the next point for the slicer to be drawn
-                int pathIndex = this.slicerIndex.get(i);
-                //we call drawSlicer for each slicer
-                drawSlicer(pathIndex, i);
+            boolean levelDone = true;
+            for(Slicer s: slicers){
+                if((s.getSpawnDelayF() <= this.framesPassed && s.getLocationIndex() != - 1) || s.getLocationIndex() > 0){
+                    if(s.getWave() > this.wave){
+                        this.wave = s.getWave();
+                    }
+                    s.drawSlicer(this.timescaleMultiplier, this.path);
+                    levelDone = false;
+                }
             }
             //updating the number of framesPassed.
             // if timeScaleMultiplier is > 1 we "increase" the frame rate to increase the speed
             this.framesPassed += timescaleMultiplier;
-        }
-    }
 
-    private void drawSlicer(int pathIndex, int i) {
-
-        //after 300*i frames have passed the ith slicer can be drawn
-        //the 0th slicer will be drawn immediately the others will have to wait 5*i seconds when timeScaleMultiplier = 1
-        //if the pathIndex is > 0 then it means that the slicer has already been drawn once
-        if(this.framesPassed >= 300*i || pathIndex > 0){
-            //if the path index is equal to -1 then this slicer has traversed the entire path
-            if(pathIndex != -1){
-                //getting the point coords to draw the slicer
-                double x = this.slicerPoints.get(i).x;
-                double y = this.slicerPoints.get(i).y;
-                slicer.draw(x, y, new DrawOptions().setRotation(this.pathAngle.get(pathIndex)));
-
-                //setting the next point for the slicer to traverse
-                this.slicerPoints.set(i, this.path.get(pathIndex));
-
-                //if we've traversed the whole path then we will set the index to -1 and not run this code again
-                if(pathIndex + timescaleMultiplier >= this.lengthOfPath) {
-                    this.slicerIndex.set(i, -1);
-                }
-                //otherwise we will set the new slicerIndex to be the current pathIndex + timeScaleMultiplier
-                //this means we will traverse at $timeScaleMultiplier px per frame
-                else {
-                    this.slicerIndex.set(i, pathIndex + timescaleMultiplier);
-                }
-            }
-            //if the pathIndex is -1 and we are on the 4th (last) slicer => all slicers have traversed the entire polyline
-            //so we must close the game
-            else if(i == 4){
-                Window.close();
+            //if the level is done, we set sWasPressed to false, increase the level and load its corresponding slicers
+            if(levelDone){
+                this.level++;
+                this.sWasPressed = false;
+                this.timescaleMultiplier = 1;
+                this.initializeSlicersFromText("res/levels/waves" + this.level + ".txt");
             }
         }
     }
 
     //main method
     public static void main(String[] args) throws Exception {
-        new ShadowDefend().run();
+        new ShadowDefend("res/levels/waves.txt").run();
     }
 }
