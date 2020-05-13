@@ -1,6 +1,8 @@
 import bagel.DrawOptions;
 import bagel.Image;
 import bagel.util.Point;
+import org.jetbrains.annotations.NotNull;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -9,11 +11,11 @@ public class Slicer implements Attackable{
     private double health, speed;
     private int locationIndex, spawnDelayF, reward, penalty, wave;
     private Point location;
-    private Image image;
-    private String type;
+    private final Image image;
+    private final String type;
     private List<Slicer> children;
 
-    public Slicer(String type, int wave, int spawnDelayF) {
+    public Slicer(@NotNull String type, int wave, int spawnDelayF) {
         this.type = type;
         switch(type){
             case "slicer":
@@ -90,7 +92,7 @@ public class Slicer implements Attackable{
                 this.image.draw(location.x,
                         location.y,
                         new DrawOptions().setRotation(path.getPathAngle().get(locationIndex)));
-                this.locationIndex += timescaleMultiplier*(int)this.speed*4;
+                this.locationIndex += timescaleMultiplier*(int)(this.speed*4);
             }
             else{
                 this.locationIndex = - 1;

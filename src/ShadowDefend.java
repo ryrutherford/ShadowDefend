@@ -3,6 +3,9 @@ import bagel.Image;
 import bagel.Window;
 import bagel.map.TiledMap;
 import bagel.util.Colour;
+import bagel.util.Point;
+import bagel.util.Rectangle;
+
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
@@ -53,6 +56,10 @@ public class ShadowDefend extends AbstractGame {
     private List<Slicer> slicers;
     private Path path;
     private int level;
+    private List<Rectangle> purchaseItemBoundingBoxes;
+    private final Rectangle gameScreen = new Rectangle(0, 100, WIDTH, HEIGHT - 25);
+    private List<Attacker> towers;
+    private Attacker towerToBePlaced;
 
     //constructor
     public ShadowDefend(String filename) {
@@ -68,7 +75,20 @@ public class ShadowDefend extends AbstractGame {
         //status is initially awaiting start because that is how the game begins
         this.status = "Awaiting Start";
 
+        //the user starts with 25 lives
         this.lives = 25;
+
+        //the user starts with $500
+        this.cash = 500;
+
+        //initializing the purchaseItemBoundingBoxes with 3 rectangles of size 64x64 at the position of each purchase item
+        //the first item in the arraylist is the tank's bounding box, then the supertanks's, then the airplane's
+        this.purchaseItemBoundingBoxes = new ArrayList<Rectangle>(3);
+        for(int i = 0; i < 3; i++){
+            this.purchaseItemBoundingBoxes.add(new Rectangle(32 + i*120, 8, 64,64));
+        }
+
+        this.towers = new ArrayList<Attacker>();
 
         //creating the path object
         this.path = new Path(this.map.getAllPolylines().get(0));
@@ -181,15 +201,91 @@ public class ShadowDefend extends AbstractGame {
         this.defaultTextFont.drawString("Lives: " + this.lives, Window.getWidth() - 100, Window.getHeight() - 6);
     }
 
+    private void drawTowers(){
+        for(Attacker a: this.towers){
+            a.getImage().draw(a.getLocation().x, a.getLocation().y);
+        }
+    }
+
+    private boolean drawSlicers() {
+        boolean levelDone = true;
+        for(Slicer s: this.slicers){
+            if((s.getSpawnDelayF() <= this.framesPassed && s.getLocationIndex() != - 1) || s.getLocationIndex() > 0){
+                if(s.getWave() > this.wave){
+                    this.wave = s.getWave();
+                }
+                s.drawSlicer(this.timescaleMultiplier, this.path);
+                levelDone = false;
+            }
+        }
+        return levelDone;
+    }
+
+    private void selectTower(Input input) {
+        int i = 0;
+        for(Rectangle r: this.purchaseItemBoundingBoxes){
+            Attacker attackerToBePlaced = null;
+            switch(i){
+                case 0:
+                    attackerToBePlaced = new ActiveTower("tank");
+                    break;
+                case 1:
+                    attackerToBePlaced = new ActiveTower("supertank");
+                    break;
+                case 2:
+                    attackerToBePlaced = new ActiveTower("airsupport");
+                    break;
+            }
+            if(r.intersects(input.getMousePosition()) && this.cash >= attackerToBePlaced.getPrice()){
+                this.status = "Placing";
+                this.towerToBePlaced = attackerToBePlaced;
+                break;
+            }
+            i++;
+        }
+    }
+
+    private void placeTower(Input input){
+        if(!this.map.hasProperty((int)input.getMouseX(), (int)input.getMouseY(), "blocked")
+                && this.gameScreen.intersects(input.getMousePosition())
+                && !this.mouseIntersectsTower(input.getMousePosition())){
+            this.towerToBePlaced.getImage().draw(input.getMouseX(), input.getMouseY());
+            //if they press the left button in a valid position, we add the tower
+            if(input.wasPressed(MouseButtons.LEFT)){
+                this.cash -= this.towerToBePlaced.getPrice();
+                this.towerToBePlaced.setLocation(input.getMousePosition());
+                this.towers.add(this.towerToBePlaced);
+                //TODO: implement the proper procedures for updating status
+                this.towerToBePlaced = null;
+                this.status = "Awaiting Start";
+            }
+        }
+        if(input.wasPressed(MouseButtons.RIGHT)){
+            this.towerToBePlaced = null;
+            //TODO: implement the proper procedures for updating status
+            this.status = "Awaiting Start";
+        }
+    }
+
+    private boolean mouseIntersectsTower(Point mousePosition){
+        for(Attacker a : towers){
+            if(a.getBounding().intersects(mousePosition)){
+                return true;
+            }
+        }
+        return false;
+    }
+
     @Override
     protected void update(Input input) {
 
         //drawing the map
-        map.draw(0, 0, 0, 0, Window.getWidth(), Window.getHeight());
+        this.map.draw(0, 0, 0, 0, Window.getWidth(), Window.getHeight());
 
-        //drawing the buy and status panel
+        //drawing the buy panel, status panel, and towers
         drawBuyPanel();
         drawStatusPanel();
+        drawTowers();
 
         if(input.wasPressed(Keys.S)){
             //if the user presses S and the level is not -1 then we need to start sending out slicers for the current level
@@ -218,16 +314,9 @@ public class ShadowDefend extends AbstractGame {
                     this.timescaleMultiplier--;
             }
 
-            boolean levelDone = true;
-            for(Slicer s: slicers){
-                if((s.getSpawnDelayF() <= this.framesPassed && s.getLocationIndex() != - 1) || s.getLocationIndex() > 0){
-                    if(s.getWave() > this.wave){
-                        this.wave = s.getWave();
-                    }
-                    s.drawSlicer(this.timescaleMultiplier, this.path);
-                    levelDone = false;
-                }
-            }
+            //drawing the slicers, the drawSlicers() method returns a boolean that indicates whether the level is done
+            boolean levelDone = drawSlicers();
+
             //updating the number of framesPassed.
             // if timeScaleMultiplier is > 1 we "increase" the frame rate to increase the speed
             this.framesPassed += timescaleMultiplier;
@@ -237,9 +326,17 @@ public class ShadowDefend extends AbstractGame {
                 this.level++;
                 this.sWasPressed = false;
                 this.timescaleMultiplier = 1;
+                this.framesPassed = 0;
                 this.initializeSlicersFromText("res/levels/waves" + this.level + ".txt");
             }
         }
+
+        //if the left mouse button was pressed then we must call the selectTower method which will show the tower at the mouse position
+        if(input.wasPressed(MouseButtons.LEFT))
+            selectTower(input);
+
+        if(this.status.equals("Placing"))
+            placeTower(input);
     }
 
     //main method
