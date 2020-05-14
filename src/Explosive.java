@@ -1,7 +1,6 @@
 import bagel.Image;
 import bagel.util.Point;
 import bagel.util.Rectangle;
-
 import java.util.List;
 
 public class Explosive extends Ammo{

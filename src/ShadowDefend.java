@@ -205,7 +205,6 @@ public class ShadowDefend extends AbstractGame {
     }
 
     private void drawTowers(){
-        //TODO: Remove planes when they have left the window and dropped all explosives
         Iterator<Tower> itr = this.towers.iterator();
         while(itr.hasNext()){
             Tower t = itr.next();
@@ -215,11 +214,16 @@ public class ShadowDefend extends AbstractGame {
                 if(t.getBounding() != null && t.getBounding().intersects(this.gameScreen)) {
                     t.attack(this.slicers.get(this.wave-1), this.timescaleMultiplier);
                 }
+                //this condition will only be triggered for airsupport since tanks will never have a null bounding or be outside the game screen
                 else {
+                    //we set the bounding to null because this will prevent any new explosives from being dropped in the attack method
                     t.setBounding(null);
+
+                    //if there are no more explosives left, we remove the tower from the game
                     if(t.getAmmo().size() == 0){
                         itr.remove();
                     }
+                    //otherwise we continue to attack with the remaining explosives
                     else{
                         t.attack(this.slicers.get(this.wave-1), this.timescaleMultiplier);
                     }

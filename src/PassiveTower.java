@@ -28,7 +28,7 @@ public class PassiveTower extends Tower {
 
         if(this.getBounding() != null){
             //if the dropTime is 0 then we need to drop a new explosive
-            if(this.dropTime == 0){
+            if(this.dropTime <= 0){
                 this.dropTime = ThreadLocalRandom.current().nextInt(0, 181);
                 this.getAmmo().add(new Explosive(this.getLocation()));
             }
@@ -43,15 +43,6 @@ public class PassiveTower extends Tower {
                 this.setLocation(new Point(this.getLocation().x, this.getLocation().y + timeScaleMultiplier * this.speed));
         }
 
-        Iterator<Ammo> itr = this.getAmmo().iterator();
-        while(itr.hasNext()){
-            Ammo a = itr.next();
-            a.getImage().draw(a.getLocation().x, a.getLocation().y);
-
-            boolean remove = a.damageSlicers(slicers, timeScaleMultiplier);
-            if(remove){
-                itr.remove();
-            }
-        }
+        this.drawAmmo(slicers, timeScaleMultiplier);
     }
 }
