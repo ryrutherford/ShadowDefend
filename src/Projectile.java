@@ -1,24 +1,29 @@
 import bagel.Image;
 import bagel.util.Point;
+import bagel.util.Rectangle;
 
-public class Projectile {
+import java.util.List;
+
+public class Projectile extends Ammo{
 
     private double direction;
-    private Point location;
-    private Image image;
-    private int damage;
 
     public Projectile(double direction, Point location, String type) {
         this.direction = direction;
-        this.location = location;
-        this.image = new Image("res/images/" + type + "_projectile.png");
+        this.setImage(new Image("res/images/" + type + "_projectile.png"));
+        this.setLocation(location, this.getImage().getBoundingBoxAt(this.getLocation()));
         switch(type){
             case "tank":
-                this.damage = 1;
+                this.setDamage(1);
                 break;
             case "supertank":
-                this.damage = 3;
+                this.setDamage(3);
                 break;
         }
     }
+
+    public boolean damageSlicers(List<Slicer> slicers, int timeScaleMultiplier){
+        return false;
+    }
+
 }

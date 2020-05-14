@@ -1,53 +1,57 @@
+import bagel.DrawOptions;
 import bagel.Image;
 import bagel.util.Point;
-import bagel.util.Rectangle;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 
-public class PassiveTower implements Attacker {
+public class PassiveTower extends Tower {
 
-    private final Image image;
-    private String type;
-    private int price;
-    private Point location;
-    private Rectangle bounding;
-    double direction;
+    private int speed, dropTime;
 
-    public PassiveTower(String type){
-        this.image = new Image("res/images/" + type + ".png");
-        this.type = type;
-        switch(type){
+    public PassiveTower(String type) {
+        this.setImage(new Image("res/images/" + type + ".png"));
+        this.setType(type);
+        switch (type) {
             case "airsupport":
-                this.price = 500;
+                this.setPrice(500);
+                this.speed = 5;
                 break;
         }
-    }
-    @Override
-    public boolean attack() {
-        return false;
+        //generating a random drop time between 0 and 3 seconds (inclusive) which will correspond to an int between 0 and 180 frames
+        this.dropTime = ThreadLocalRandom.current().nextInt(0, 181);
     }
 
     @Override
-    public Rectangle getBounding() {
-        return null;
-    }
+    public void attack(List<Slicer> slicers, int timeScaleMultiplier) {
 
-    @Override
-    public Image getImage() {
-        return null;
-    }
+        if(this.getBounding() != null){
+            //if the dropTime is 0 then we need to drop a new explosive
+            if(this.dropTime == 0){
+                this.dropTime = ThreadLocalRandom.current().nextInt(0, 181);
+                this.getAmmo().add(new Explosive(this.getLocation()));
+            }
+            else{
+                this.dropTime -= timeScaleMultiplier;
+            }
 
-    @Override
-    public int getPrice() {
-        return this.price;
-    }
+            //moving the airsupport
+            if (this.getDirection() == Math.PI / 2)
+                this.setLocation(new Point(this.getLocation().x + timeScaleMultiplier * this.speed, this.getLocation().y));
+            else
+                this.setLocation(new Point(this.getLocation().x, this.getLocation().y + timeScaleMultiplier * this.speed));
+        }
 
-    @Override
-    public Point getLocation() {
-        return this.location;
-    }
+        Iterator<Ammo> itr = this.getAmmo().iterator();
+        while(itr.hasNext()){
+            Ammo a = itr.next();
+            a.getImage().draw(a.getLocation().x, a.getLocation().y);
 
-    @Override
-    public void setLocation(Point Location) {
-        this.location = location;
-        this.bounding = this.image.getBoundingBoxAt(location);
+            boolean remove = a.damageSlicers(slicers, timeScaleMultiplier);
+            if(remove){
+                itr.remove();
+            }
+        }
     }
 }

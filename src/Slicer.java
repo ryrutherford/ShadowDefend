@@ -1,6 +1,7 @@
 import bagel.DrawOptions;
 import bagel.Image;
 import bagel.util.Point;
+import bagel.util.Rectangle;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -14,6 +15,7 @@ public class Slicer implements Attackable{
     private final Image image;
     private final String type;
     private List<Slicer> children;
+    private Rectangle bounding;
 
     public Slicer(@NotNull String type, int wave, int spawnDelayF) {
         this.type = type;
@@ -66,9 +68,10 @@ public class Slicer implements Attackable{
         this.health -= deduction;
 
         //if the deduction forced the health to hit 0 or below =>
-        // the locationIndex is set to -1 so the slicer disappears off the screen
+        //the locationIndex is set to -1 so the slicer disappears off the screen
         //if the slicer has children then they will each be placed at the location of their parent slicer (slighlty spread apart)
         if(this.health <= 0){
+            this.health = 0;
             int i = 0;
             for(Slicer s: children){
                 if(this.locationIndex - i >= 0) {
@@ -77,7 +80,7 @@ public class Slicer implements Attackable{
                 else{
                     s.setLocationIndex(this.locationIndex);
                 }
-                i+=5;
+                i+=100;
             }
             this.locationIndex = -1;
         }
@@ -87,6 +90,7 @@ public class Slicer implements Attackable{
         if(this.locationIndex != - 1){
             if(locationIndex < path.getPathLength()) {
                 this.location = path.getPath().get(locationIndex);
+                this.bounding = this.image.getBoundingBoxAt(this.location);
 
                 //drawing the slicer
                 this.image.draw(location.x,
@@ -142,6 +146,8 @@ public class Slicer implements Attackable{
     public Image getImage(){
         return this.image;
     }
+
+    public Rectangle getBounding() { return this.bounding; }
 
     //Setters
 

@@ -9,8 +9,7 @@ import bagel.util.Rectangle;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 
 public class ShadowDefend extends AbstractGame {
@@ -41,54 +40,33 @@ public class ShadowDefend extends AbstractGame {
     pathAngle: a list of the angle that the slicer should have, same length as the path list
     lengthOfPath: keeps track of the length of the path list (for convenience)
      */
-    private final TiledMap map = new TiledMap("res/levels/1.tmx");
-    private final Image buyPanel = new Image("res/images/buypanel.png");
-    private final Image statusPanel = new Image("res/images/statuspanel.png");
-    private int cash;
-    private final Font defaultTextFont = new Font("res/fonts/DejaVuSans-Bold.ttf", 16);
-    private final Font cashFont = new Font("res/fonts/DejaVuSans-Bold.ttf", 36);
-    private int wave;
-    private String status;
-    private int lives;
-    private int framesPassed;
-    private boolean sWasPressed;
-    private int timescaleMultiplier;
-    private List<Slicer> slicers;
+    private TiledMap map = new TiledMap("res/levels/1.tmx");
+    private final Image buyPanel = new Image("res/images/buypanel.png"),
+            statusPanel = new Image("res/images/statuspanel.png");
+    private final Font defaultTextFont = new Font("res/fonts/DejaVuSans-Bold.ttf", 16),
+            cashFont = new Font("res/fonts/DejaVuSans-Bold.ttf", 36);
+    private Stack<String> status = new Stack<String>();
+    private int lives = 25, wave = 1, cash = 5000, framesPassed = 0, timescaleMultiplier = 1, level = 1;
+    private boolean sWasPressed = false, horizontal = true;
     private Path path;
-    private int level;
-    private List<Rectangle> purchaseItemBoundingBoxes;
+    private List<List<Slicer>> slicers;
+    private List<Rectangle> purchaseItemBoundingBoxes = new ArrayList<Rectangle>(3);
     private final Rectangle gameScreen = new Rectangle(0, 100, WIDTH, HEIGHT - 25);
-    private List<Attacker> towers;
-    private Attacker towerToBePlaced;
+    private List<Tower> towers = new ArrayList<Tower>();
+    private Tower towerToBePlaced;
 
     //constructor
     public ShadowDefend(String filename) {
         super(WIDTH, HEIGHT, "ShadowDefend");
-        this.timescaleMultiplier = 1;
-
-        //wave is initially 1 because that will be the first wave to come
-        this.wave = 1;
-
-        //level is initially 1 because that will be the first level
-        this.level = 1;
 
         //status is initially awaiting start because that is how the game begins
-        this.status = "Awaiting Start";
-
-        //the user starts with 25 lives
-        this.lives = 25;
-
-        //the user starts with $500
-        this.cash = 500;
+        this.status.push("Awaiting Start");
 
         //initializing the purchaseItemBoundingBoxes with 3 rectangles of size 64x64 at the position of each purchase item
         //the first item in the arraylist is the tank's bounding box, then the supertanks's, then the airplane's
-        this.purchaseItemBoundingBoxes = new ArrayList<Rectangle>(3);
         for(int i = 0; i < 3; i++){
             this.purchaseItemBoundingBoxes.add(new Rectangle(32 + i*120, 8, 64,64));
         }
-
-        this.towers = new ArrayList<Attacker>();
 
         //creating the path object
         this.path = new Path(this.map.getAllPolylines().get(0));
@@ -100,7 +78,7 @@ public class ShadowDefend extends AbstractGame {
     //method to initialize the slicers list with slicers based on a text file
     private void initializeSlicersFromText(String filename){
         BufferedReader fileReader = null;
-        this.slicers = new ArrayList<Slicer>();
+        this.slicers = new ArrayList<List<Slicer>>();
         try{
             //the file reader and the current line of the file
             fileReader = new BufferedReader(new FileReader(filename));
@@ -121,20 +99,27 @@ public class ShadowDefend extends AbstractGame {
                         //spawnDelayMS is the spawnDelay in milliseconds. We will convert it to frames when we create the slicer
                         int spawnDelayMS = Integer.parseInt(waveEvent[4]);
                         int i;
+                        try{
+                            this.slicers.get(wave-1);
+                        }
+                        catch(IndexOutOfBoundsException e){
+                            this.slicers.add(new ArrayList<Slicer>());
+                            delay = 0;
+                        }
                         for(i = 0; i < numSlicers; i++){
-                            this.slicers.add(new Slicer(slicerType, wave, delay + 60*i*spawnDelayMS/1000));
+                            this.slicers.get(wave-1).add(new Slicer(slicerType, wave, delay + 60*i*spawnDelayMS/1000));
                         }
                         delay += 60*(i - 1)*spawnDelayMS/1000;
                         break;
                     case "delay":
-                        //updating the delay based on the value in the delay event
+                        //updating the delay based on the value in the delay event (waveEvent[2])
                         delay += 60*Integer.parseInt(waveEvent[2])/1000;
                         break;
                 }
             }
         }
         catch(IOException e){
-            this.level = - 1;
+            e.printStackTrace();
         }
         finally{
             try{
@@ -169,11 +154,11 @@ public class ShadowDefend extends AbstractGame {
         this.defaultTextFont.drawString("Key Binds:\nS - Start Wave\nL - Increase Timescale\nK - Decrease Timescale",
                 Window.getWidth()/2 - 30, 15);
 
-        //if sWasPressed is false then the user has either beat the game or needs to press s to start the next level
+        //if sWasPressed is false then the user has either beat the game or needs to press s to start the next wave
         if(!this.sWasPressed) {
-            //if the level is not -1 then the level exists
-            if(this.level != -1) {
-                this.defaultTextFont.drawString("Press S to Start Level " + this.level,
+            //if the wave is not -1 then the wave exists
+            if(this.wave != -1) {
+                this.defaultTextFont.drawString("Press S to Start Wave " + this.wave,
                         Window.getWidth() / 2 - 30, 85);
             }
             else{
@@ -187,44 +172,96 @@ public class ShadowDefend extends AbstractGame {
     private void drawStatusPanel(){
         statusPanel.drawFromTopLeft(0, Window.getHeight() - 25);
 
+        //calling the updateStatus method to handle status changes
+        updateStatus();
+
         //drawing the wave status
-        this.defaultTextFont.drawString("Wave: " + this.wave, 6, Window.getHeight() - 6);
+        this.defaultTextFont.drawString("Wave: " + (this.wave == -1 ? "N/A" : this.wave), 6, Window.getHeight() - 6);
 
         //drawing the timescale status
         this.defaultTextFont.drawString("Time Scale: " + this.timescaleMultiplier, 256, Window.getHeight() - 6,
                 new DrawOptions().setBlendColour(this.timescaleMultiplier <= 1.0 ? Colour.WHITE : Colour.GREEN));
 
         //drawing the current status
-        this.defaultTextFont.drawString("Status: " + this.status, 460, Window.getHeight() - 6);
+        this.defaultTextFont.drawString("Status: " + this.status.peek(), 460, Window.getHeight() - 6);
 
         //drawing the lives remaining
         this.defaultTextFont.drawString("Lives: " + this.lives, Window.getWidth() - 100, Window.getHeight() - 6);
     }
 
+    private void updateStatus(){
+        if(this.status.peek().equals("Wave In Progress") && this.sWasPressed == false){
+            this.status.pop();
+            if(this.status.peek().equals("Awaiting Start") == false){
+                this.status.removeAllElements();
+                this.status.push("Awaiting Start");
+            }
+        }
+
+        if(this.wave == -1){
+            this.status.removeAllElements();
+            this.status.push("Winner");
+        }
+    }
+
     private void drawTowers(){
-        for(Attacker a: this.towers){
-            a.getImage().draw(a.getLocation().x, a.getLocation().y);
+        //TODO: Remove planes when they have left the window and dropped all explosives
+        Iterator<Tower> itr = this.towers.iterator();
+        while(itr.hasNext()){
+            Tower t = itr.next();
+            t.drawTower();
+            //if the wave is active then we need to draw the tower with movement
+            if(this.sWasPressed) {
+                if(t.getBounding() != null && t.getBounding().intersects(this.gameScreen)) {
+                    t.attack(this.slicers.get(this.wave-1), this.timescaleMultiplier);
+                }
+                else {
+                    t.setBounding(null);
+                    if(t.getAmmo().size() == 0){
+                        itr.remove();
+                    }
+                    else{
+                        t.attack(this.slicers.get(this.wave-1), this.timescaleMultiplier);
+                    }
+                }
+            }
         }
     }
 
     private boolean drawSlicers() {
-        boolean levelDone = true;
-        for(Slicer s: this.slicers){
-            if((s.getSpawnDelayF() <= this.framesPassed && s.getLocationIndex() != - 1) || s.getLocationIndex() > 0){
-                if(s.getWave() > this.wave){
-                    this.wave = s.getWave();
-                }
+        boolean waveDone = true;
+
+        //we use a ListIterator to iterate over the list because we may modify the list during iteration
+        ListIterator<Slicer> itr = this.slicers.get(this.wave - 1).listIterator(this.slicers.get(this.wave-1).size());
+        while(itr.hasPrevious()){
+            Slicer s = itr.previous();
+            //if the slicer has started moving (location index > 0) or the spawn delay of the Slicer has passed and the slicer is not dead/finished the path (index != -1)
+            //then we can draw the slicer
+            if(s.getLocationIndex() > 0 || (s.getSpawnDelayF() <= this.framesPassed && s.getLocationIndex() != - 1)){
                 s.drawSlicer(this.timescaleMultiplier, this.path);
-                levelDone = false;
+                waveDone = false;
+            }
+            else if(s.getLocationIndex() == -1 && s.getHealth() == 0 && s.getWave() == this.wave){
+                s.setHealth(-1);
+                for(Slicer child: s.getChildren()){
+                    itr.add(child);
+                }
+            }
+            else if(s.getLocationIndex() == 0){
+                waveDone = false;
             }
         }
-        return levelDone;
+        if(waveDone == true){
+            System.out.println("here");
+        }
+        return waveDone;
     }
+
 
     private void selectTower(Input input) {
         int i = 0;
         for(Rectangle r: this.purchaseItemBoundingBoxes){
-            Attacker attackerToBePlaced = null;
+            Tower attackerToBePlaced = null;
             switch(i){
                 case 0:
                     attackerToBePlaced = new ActiveTower("tank");
@@ -233,11 +270,11 @@ public class ShadowDefend extends AbstractGame {
                     attackerToBePlaced = new ActiveTower("supertank");
                     break;
                 case 2:
-                    attackerToBePlaced = new ActiveTower("airsupport");
+                    attackerToBePlaced = new PassiveTower("airsupport");
                     break;
             }
             if(r.intersects(input.getMousePosition()) && this.cash >= attackerToBePlaced.getPrice()){
-                this.status = "Placing";
+                this.status.push("Placing");
                 this.towerToBePlaced = attackerToBePlaced;
                 break;
             }
@@ -252,23 +289,37 @@ public class ShadowDefend extends AbstractGame {
             this.towerToBePlaced.getImage().draw(input.getMouseX(), input.getMouseY());
             //if they press the left button in a valid position, we add the tower
             if(input.wasPressed(MouseButtons.LEFT)){
+                switch(this.towerToBePlaced.getType()){
+                    case "airsupport":
+                        //if the tower is to be placed horizontally we place it on the x axis
+                        if(this.horizontal){
+                            this.towerToBePlaced.setLocation(new Point(0, input.getMouseY()));
+                            this.towerToBePlaced.setDirection(Math.PI/2);
+                        }
+                        //if the tower is to be placed vertically we place it on the y axis
+                        else{
+                            this.towerToBePlaced.setLocation(new Point(input.getMouseX(), 100));
+                            this.towerToBePlaced.setDirection(Math.PI);
+                        }
+                        this.horizontal = !this.horizontal;
+                        break;
+                    default:
+                        this.towerToBePlaced.setLocation(input.getMousePosition());
+                }
                 this.cash -= this.towerToBePlaced.getPrice();
-                this.towerToBePlaced.setLocation(input.getMousePosition());
                 this.towers.add(this.towerToBePlaced);
-                //TODO: implement the proper procedures for updating status
                 this.towerToBePlaced = null;
-                this.status = "Awaiting Start";
+                this.status.remove("Placing");
             }
         }
         if(input.wasPressed(MouseButtons.RIGHT)){
             this.towerToBePlaced = null;
-            //TODO: implement the proper procedures for updating status
-            this.status = "Awaiting Start";
+            this.status.remove("Placing");
         }
     }
 
     private boolean mouseIntersectsTower(Point mousePosition){
-        for(Attacker a : towers){
+        for(Tower a : towers){
             if(a.getBounding().intersects(mousePosition)){
                 return true;
             }
@@ -288,19 +339,20 @@ public class ShadowDefend extends AbstractGame {
         drawTowers();
 
         if(input.wasPressed(Keys.S)){
-            //if the user presses S and the level is not -1 then we need to start sending out slicers for the current level
-            if(level != -1) {
+            //if the user presses S and the wave is not -1 then we need to start sending out slicers for the current wave
+            if(this.wave != -1) {
                 this.sWasPressed = true;
-                this.status = "Wave In Progress";
-            }
-            //if the level is -1 then the user beat the game so we will restart from level 1
-            else{
-                this.initializeSlicersFromText("res/levels/waves.txt");
-                this.level = 1;
-                this.status = "Wave In Progress";
-                this.sWasPressed = true;
+                if(this.status.peek().equals("Placing")){
+                    this.status.pop();
+                    this.status.push("Wave In Progress");
+                    this.status.push("Placing");
+                }
+                else {
+                    this.status.push("Wave In Progress");
+                }
             }
         }
+
         //if sWasPressed then we start drawing slicers
         if(sWasPressed) {
 
@@ -314,28 +366,42 @@ public class ShadowDefend extends AbstractGame {
                     this.timescaleMultiplier--;
             }
 
-            //drawing the slicers, the drawSlicers() method returns a boolean that indicates whether the level is done
-            boolean levelDone = drawSlicers();
+            //drawing the slicers, the drawSlicers() method returns a boolean that indicates whether the wave is done
+            boolean waveDone = drawSlicers();
 
             //updating the number of framesPassed.
             // if timeScaleMultiplier is > 1 we "increase" the frame rate to increase the speed
             this.framesPassed += timescaleMultiplier;
 
-            //if the level is done, we set sWasPressed to false, increase the level and load its corresponding slicers
-            if(levelDone){
-                this.level++;
+            //if the wave is done, we set sWasPressed to false => if there are no more waves we set the wave to -1 and the player wins
+            if(waveDone){
+                this.wave++;
+                if(this.wave > this.slicers.size()){
+                    this.level++;
+                    //try to open a map for the corresponding level, if it doesn't exist then the player has won the game
+                    try{
+                        this.map = new TiledMap("res/levels/" + this.level + ".tmx");
+                        this.initializeSlicersFromText("res/levels/waves.txt");
+                        this.path = new Path(this.map.getAllPolylines().get(0));
+                        this.towers = new ArrayList<Tower>();
+                        this.wave = 1;
+                    }
+                    catch(Exception e){
+                        this.wave = -1;
+                    }
+                }
                 this.sWasPressed = false;
                 this.timescaleMultiplier = 1;
                 this.framesPassed = 0;
-                this.initializeSlicersFromText("res/levels/waves" + this.level + ".txt");
             }
         }
 
-        //if the left mouse button was pressed then we must call the selectTower method which will show the tower at the mouse position
-        if(input.wasPressed(MouseButtons.LEFT))
+        //if the left mouse button was pressed and the game is not over
+        //then we must call the selectTower method which will show the tower at the mouse position
+        if(input.wasPressed(MouseButtons.LEFT) && this.status.peek().equals("Winner") == false)
             selectTower(input);
 
-        if(this.status.equals("Placing"))
+        if(this.towerToBePlaced != null)
             placeTower(input);
     }
 
