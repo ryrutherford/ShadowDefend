@@ -182,8 +182,9 @@ public class ShadowDefend extends AbstractGame {
                 this.defaultTextFont.drawString("Press S to Start Wave " + this.wave,
                         Window.getWidth() / 2 - 30, 85);
             }
+            //if the wave is -1 then the player beat the game
             else{
-                this.defaultTextFont.drawString("Congratulations. You Beat the Game!",
+                this.defaultTextFont.drawString("You Won! Press S to Restart",
                         Window.getWidth() / 2 - 30, 85);
             }
         }
@@ -223,8 +224,10 @@ public class ShadowDefend extends AbstractGame {
 
         //if the wave is -1 then the player has won the game, winner will be displayed
         if(this.wave == -1){
-            this.status.removeAllElements();
-            this.status.push("Winner");
+            if(this.status.peek().equals("Winner") == false) {
+                this.status.removeAllElements();
+                this.status.push("Winner");
+            }
         }
     }
 
@@ -316,26 +319,28 @@ public class ShadowDefend extends AbstractGame {
         //we must first detect which purchase item (if any) was clicked
         int i = 0;
         for(Rectangle r: this.purchaseItemBoundingBoxes){
-            Tower attackerToBePlaced = null;
-            switch(i){
-                //bounding box 0 corresponds to a tank
-                case 0:
-                    attackerToBePlaced = new ActiveTower("tank");
+            //if the user clicked on one of the purchase items, we figure out which one it was and begin placing it if they have enough cash
+            if(r.intersects(input.getMousePosition())){
+                Tower attackerToBePlaced = null;
+                switch(i){
+                    //bounding box 0 corresponds to a tank
+                    case 0:
+                        attackerToBePlaced = new ActiveTower("tank");
+                        break;
+                    //bounding box 1 corresponds to a supertank
+                    case 1:
+                        attackerToBePlaced = new ActiveTower("supertank");
+                        break;
+                    //bounding box 2 corresponds to an airsupport
+                    case 2:
+                        attackerToBePlaced = new PassiveTower("airsupport");
+                        break;
+                }
+                if(this.cash >= attackerToBePlaced.getPrice()){
+                    this.status.push("Placing");
+                    this.towerToBePlaced = attackerToBePlaced;
                     break;
-                //bounding box 1 corresponds to a supertank
-                case 1:
-                    attackerToBePlaced = new ActiveTower("supertank");
-                    break;
-                //bounding box 2 corresponds to an airsupport
-                case 2:
-                    attackerToBePlaced = new PassiveTower("airsupport");
-                    break;
-            }
-            //if the mouse was clicked on one of the purchase item bounding boxes and the player has enough cash then we will set towerToBePlace to the corresponding tower
-            if(r.intersects(input.getMousePosition()) && this.cash >= attackerToBePlaced.getPrice()){
-                this.status.push("Placing");
-                this.towerToBePlaced = attackerToBePlaced;
-                break;
+                }
             }
             i++;
         }
@@ -351,8 +356,10 @@ public class ShadowDefend extends AbstractGame {
                 && this.gameScreen.intersects(input.getMousePosition())
                 && !this.mouseIntersectsTower(input.getMousePosition())){
 
-            //drawing the towerToBePlaced at the current mouse position
-            this.towerToBePlaced.getImage().draw(input.getMouseX(), input.getMouseY());
+            //drawing the towerToBePlaced at the current mouse position with the proper direction (for airsupport)
+            this.towerToBePlaced.getImage().draw(input.getMouseX(),
+                    input.getMouseY(),
+                    new DrawOptions().setRotation(this.towerToBePlaced.getDirection()));
 
             //if they press the left button in a valid position, we add the tower
             if(input.wasPressed(MouseButtons.LEFT)){
@@ -397,15 +404,58 @@ public class ShadowDefend extends AbstractGame {
 
     //helper method used in the placeTower method to detect whether the current mouse position intersects with a current tower
     private boolean mouseIntersectsTower(Point mousePosition){
-        for(Tower t : towers){
-            //the null check is used to avoid nullpointerexceptions caused by the null bounding of airsupport outside the game screen
-            if(t.getBounding() != null){
-                if(t.getBounding().intersects(mousePosition)){
-                    return true;
+        switch(this.towerToBePlaced.getType()){
+            case "airsupport":
+                if(this.horizontal){
+                    if(this.towerToBePlaced.getDirection() != Math.PI/2)
+                        this.towerToBePlaced.setDirection(Math.PI/2);
+                    for(Tower t : towers){
+                        //the null check is used to avoid nullpointerexceptions caused by the null bounding of airsupport outside the game screen
+                        if(t.getBounding() != null){
+                            if(t.getBounding().intersects(new Point(0, mousePosition.y))){
+                                return true;
+                            }
+                        }
+                    }
                 }
-            }
+                else{
+                    if(this.towerToBePlaced.getDirection() != Math.PI)
+                        this.towerToBePlaced.setDirection(Math.PI);
+                    for(Tower t : towers){
+                        //the null check is used to avoid nullpointerexceptions caused by the null bounding of airsupport outside the game screen
+                        if(t.getBounding() != null){
+                            if(t.getBounding().intersects(new Point(mousePosition.x, 100))){
+                                return true;
+                            }
+                        }
+                    }
+                }
+                break;
+            default:
+                for(Tower t : towers){
+                    //the null check is used to avoid nullpointerexceptions caused by the null bounding of airsupport outside the game screen
+                    if(t.getBounding() != null){
+                        if(t.getBounding().intersects(mousePosition)){
+                            return true;
+                        }
+                    }
+                }
+                break;
         }
         return false;
+    }
+
+    //method to reset the game state (we don't reset the lives because lives will be reset after the user restarts the game
+    private void resetState() {
+        this.map = new TiledMap("res/levels/1.tmx");
+        this.initializeSlicersFromText("res/levels/waves.txt");
+        this.path = new Path(this.map.getAllPolylines().get(0), this.gameScreen);
+        this.towers = new ArrayList<Tower>();
+        this.wave = 1;
+        this.level = 1;
+        this.cash = 500;
+        this.status.removeAllElements();
+        this.status.push("Awaiting Start");
     }
 
     @Override
@@ -437,6 +487,10 @@ public class ShadowDefend extends AbstractGame {
                     this.status.push("Wave In Progress");
                 }
             }
+            else if(this.wave == -1){
+                resetState();
+                this.lives = 25;
+            }
         }
 
         //if sWasPressed then we start drawing slicers
@@ -464,15 +518,7 @@ public class ShadowDefend extends AbstractGame {
                 //if the lives = 0 then we reset the game, but keep the lives at 0
                 //the user will have to press s to start from the beginning again (and then lives will be reset to 25)
                 if(this.lives == 0){
-                    this.map = new TiledMap("res/levels/1.tmx");
-                    this.initializeSlicersFromText("res/levels/waves.txt");
-                    this.path = new Path(this.map.getAllPolylines().get(0), this.gameScreen);
-                    this.towers = new ArrayList<Tower>();
-                    this.wave = 1;
-                    this.level = 1;
-                    this.cash = 500;
-                    this.status.removeAllElements();
-                    this.status.push("Awaiting Start");
+                    resetState();
                 }
                 //if the user is still alive we need to load the next wave
                 else {
@@ -504,7 +550,7 @@ public class ShadowDefend extends AbstractGame {
 
         //if the left mouse button was pressed and the game is not over
         //then we must call the selectTower method which will show the tower at the mouse position
-        if(input.wasPressed(MouseButtons.LEFT) && this.status.peek().equals("Winner") == false)
+        if(input.wasPressed(MouseButtons.LEFT) && this.status.peek().equals("Winner") == false && this.towerToBePlaced == null)
             selectTower(input);
 
         if(this.towerToBePlaced != null)

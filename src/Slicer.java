@@ -16,13 +16,15 @@ public class Slicer implements Attackable{
     reward: the cash reward for eliminating the slicer
     penalty: the penalty (in lives) for the slicer finishing the path without dying
     wave: the wave the slicer belongs to
+    width: the actual width of the slicer image (excluding white space) used to make its bounding box
+    height: the actual height of the slicer image (excluding white space) used to make its bounding box
     location: the location of the slicer
     type: the type of slicer (slicer, superslicer, megaslicer, apexslicer)
     children: a list of all the children of the slicer
     bounding: the bounding box of the slicer
      */
     private double health, speed;
-    private int locationIndex, spawnDelayF, reward, penalty, wave;
+    private int locationIndex, spawnDelayF, reward, penalty, wave, width, height;
     private Point location;
     private final Image image;
     private final String type;
@@ -37,12 +39,16 @@ public class Slicer implements Attackable{
                 this.health = 1.0;
                 this.reward = 2;
                 this.penalty = 1;
+                this.width = 48;
+                this.height = 58;
                 this.children = Collections.<Slicer>emptyList();
                 break;
             case "superslicer":
                 this.speed = 1.5;
                 this.health = 1.0;
                 this.reward = 15;
+                this.width = 48;
+                this.height = 58;
                 this.children = new ArrayList<Slicer>(2);
                 for(int i = 0; i < 2; i++)
                     this.children.add(new Slicer("slicer", wave, 0));
@@ -53,6 +59,8 @@ public class Slicer implements Attackable{
                 this.speed = 1.5;
                 this.health = 2.0;
                 this.reward = 10;
+                this.width = 24;
+                this.height = 30;
                 this.children = new ArrayList<Slicer>(2);
                 for(int i = 0; i < 2; i++)
                     this.children.add(new Slicer("superslicer", wave,0));
@@ -63,6 +71,8 @@ public class Slicer implements Attackable{
                 this.speed = 0.75;
                 this.health = 25.0;
                 this.reward = 150;
+                this.width = 48;
+                this.height = 58;
                 this.children = new ArrayList<Slicer>(4);
                 for(int i = 0; i < 4; i++)
                     this.children.add(new Slicer("megaslicer", wave,0));
@@ -106,7 +116,7 @@ public class Slicer implements Attackable{
             //if the locationIndex is a valid pathIndex then we get the slicers location, bounding, and draw it on the screen
             if(locationIndex < path.getPathLength()) {
                 this.location = path.getPath().get(locationIndex);
-                this.bounding = this.image.getBoundingBoxAt(this.location);
+                this.bounding = new Rectangle(this.location.x - this.width/2, this.location.y - this.height/2, this.width, this.height);
 
                 //drawing the slicer
                 this.image.draw(location.x,

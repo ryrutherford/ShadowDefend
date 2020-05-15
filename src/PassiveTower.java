@@ -23,6 +23,7 @@ public class PassiveTower extends Tower {
         }
         //generating a random drop time between 0 and 3 seconds (inclusive) which will correspond to an int between 0 and 180 frames
         this.dropTime = ThreadLocalRandom.current().nextInt(0, 181);
+        System.out.println(dropTime);
     }
 
     //attack method used to drop new explosives when drop time = 0, move the tower across the screen, and draw the tower's ammo on the screen

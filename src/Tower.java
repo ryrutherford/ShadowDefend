@@ -35,9 +35,11 @@ public abstract class Tower {
 
     //method to draw a tower in a static position with proper direction
     public void drawTower(){
-        this.getImage().draw(this.location.x,
-                this.location.y,
-                new DrawOptions().setRotation(this.direction));
+        if(this.getBounding() != null) {
+            this.getImage().draw(this.location.x,
+                    this.location.y,
+                    new DrawOptions().setRotation(this.direction));
+        }
     }
 
     //draws a tower's ammo on the screen and calls the damageSlicers method to inflict damage on slicers in its area
