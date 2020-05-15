@@ -1,14 +1,19 @@
-import bagel.DrawOptions;
 import bagel.Image;
 import bagel.util.Rectangle;
 import bagel.util.Vector2;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
+/**
+ * ActiveTower class represents tanks and supertanks (towers that detect enemies)
+ */
 public class ActiveTower extends Tower {
 
+    //radius: the shooting range of the tower in either direction (2*radius = length and width of this.range)
+    //cooldown: the time in frames that the tower must wait between consecutive shots
+    //timeToShoot: the time remaining before the next shot can be fired (initially = to cooldown)
+    //range: a rectangle that represents the shooting range of the tower
     private int radius, cooldown, timeToShoot;
     private Rectangle range;
 
@@ -41,18 +46,44 @@ public class ActiveTower extends Tower {
                     this.radius*2);
         }
 
-        //the slicer to be targeted by the next projectile
+        //the slicer to be targeted by the next projectile will be stored in this list
         List<Slicer> slicerInRange = new ArrayList<Slicer>(1);
 
         //if the cooldown period has been reached, we check for slicers in range
         //if there are slicers in range we fire a projectile at it and restart the timeToShoot period
         if(this.timeToShoot <= 0){
+
+            //the distance variable tracks the shortest distance between a valid target and the tower
+            double distance = Double.MAX_VALUE;
+            //the targettedSlicer variable tracks the slicer to be targetted by this tower
+            Slicer targettedSlicer = null;
+
             for(Slicer s: slicers){
-                if(s.getBounding() != null && s.getBounding().intersects(this.range) && s.getLocationIndex() != -1){
-                    slicerInRange.add(s);
-                    break;
+                //only slicers currently on the path (bounding box != null), in range, and not eliminated or finished the path (locationIndex != -1) can be shot at
+                if(s.getBounding() != null && s.getBounding().intersects(this.range) && s.getHealth() > 0 && s.getLocationIndex() != -1){
+
+                    //toSlicer is the vector to the location of the slicer
+                    Vector2 toSlicer = new Vector2(s.getLocation().x, s.getLocation().y);
+                    //toTower is the vector to the location of the tower
+                    Vector2 toTower = new Vector2(this.getLocation().x, this.getLocation().y);
+
+                    //betweenPoints is the vector pointing from the tower to the slicer
+                    Vector2 betweenPoints = toSlicer.sub(toTower);
+
+                    //if the length of the betweenPoints vector is shorter than the current shortest distance we update the distance and targettedSlicer vars
+                    if(distance > betweenPoints.length()){
+                        distance = betweenPoints.length();
+                        targettedSlicer = s;
+                    }
                 }
             }
+            //if the targettedSlicer is not null then there is a valid slicer to be targetted
+            //this slicer will be the valid slicer closest to the tower
+            //I decided to use this methodology instead of targetting the first valid slicer because it proved to be more effective at eliminating slicers
+            if(targettedSlicer != null){
+                slicerInRange.add(targettedSlicer);
+            }
+            //if there is a slicer in range: we will add a new projectile to the ammo list, reset the timeToShoot and set the direction of the tank based on this targe
             if(slicerInRange.size() > 0) {
                 this.getAmmo().add(new Projectile(this.getLocation(), this.getType(), this.range));
                 this.timeToShoot = this.cooldown;
@@ -65,7 +96,7 @@ public class ActiveTower extends Tower {
         else{
             this.timeToShoot -= timeScaleMultiplier;
         }
-        //we always draw the active ammo
+        //the drawAmmo method is always called
         this.drawAmmo(slicerInRange, timeScaleMultiplier);
     }
 }

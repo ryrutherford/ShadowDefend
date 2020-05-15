@@ -3,8 +3,13 @@ import bagel.util.Point;
 import bagel.util.Rectangle;
 import java.util.List;
 
+/**
+ * Explosive class represents ammo for Passive Towers
+ */
 public class Explosive extends Ammo{
 
+    //the radius corresponds to the range of the explosive in either direction
+    //the timeToDetonate corresponds to how much time is left (in frames) before the explosive explodes and causes damage to slicers
     private int radius, timeToDetonate;
 
     public Explosive(Point location){
@@ -16,28 +21,25 @@ public class Explosive extends Ammo{
         this.timeToDetonate = 120;
     }
 
+    //method that damages all slicers in the explosives radius when timeToDetonate is 0
+    //returns true when an explosive detonates, false otherwise
     @Override
     public boolean damageSlicers(List<Slicer> slicers, int timeScaleMultiplier){
+        //if the timeToDetonate is 0 then the explosive can damage all slicers within its radius
         if(this.timeToDetonate == 0){
             for(Slicer s: slicers){
                 //if the slicer is active (index is not -1) and it intersects with the explosive we deduct health from it
                 if(s.getBounding() != null && s.getLocationIndex() != - 1 && s.getBounding().intersects(this.getBounding()) && s.getHealth() > 0){
+                    //deducting the health from the slicer
                     s.deductHealth(this.getDamage());
                 }
             }
             return true;
         }
+        //otherwise we decrement the timeToDetonate based on the timeScaleMultiplier
         else{
             this.timeToDetonate -= timeScaleMultiplier;
             return false;
         }
-    }
-
-    public int getRadius() {
-        return radius;
-    }
-
-    public void setRadius(int radius) {
-        this.radius = radius;
     }
 }

@@ -1,14 +1,24 @@
 import bagel.util.Point;
+import bagel.util.Rectangle;
 import bagel.util.Vector2;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Path class represents the path along the polylines of a map and the corresponding direction angle in radians at each point
+ */
 public class Path {
+    //path: a list of all the points in the path (each point is 0.25px apart)
+    //pathAngle: a list of the direction angle at each point in the path
+    //the length of the path (and pathAngle) lists
+    //gameScreen: a rectangle that represents the game screen (screen without the panels)
     private ArrayList<Point> path;
     private ArrayList<Double> pathAngle;
     private int pathLength;
+    private Rectangle gameScreen;
 
-    public Path(List<Point> polyline){
+    public Path(List<Point> polyline, Rectangle gameScreen){
+        this.gameScreen = gameScreen;
         generatePath(polyline);
         this.pathLength = path.size();
     }
@@ -47,8 +57,12 @@ public class Path {
             //while the distance is more than 0.25 pixels we will add Points to the path
             while(distance > 0.25){
 
-                //we add v1 to the path as a point
-                this.path.add(v1.asPoint());
+                //we add v1 to the path as a point and the corresponding angle
+                //NOTE: I added this check to make it so points are only added if they are on the game screen. This prevents slicers from travelling over panels
+                if(this.gameScreen.intersects(v1.asPoint())) {
+                    this.path.add(v1.asPoint());
+                    this.pathAngle.add(angle);
+                }
 
                 //adding the betweenPoints vector with 1/4 of its original length to v1
                 //we divide it by 4 times its original length because then it will have a magnitude of 0.25 pixels
@@ -58,8 +72,6 @@ public class Path {
                 //update v1
                 v1 = v1Added;
 
-                //adding the angle to the pathAngle list
-                this.pathAngle.add(angle);
                 //recalculate the distance based on the updated v1
                 distance = Math.sqrt(Math.pow(v1.asPoint().x - v2.asPoint().x, 2) + Math.pow(v1.asPoint().y - v2.asPoint().y, 2));
             }
@@ -67,15 +79,11 @@ public class Path {
         }
     }
 
-    public ArrayList<Point> getPath() {
-        return path;
-    }
+    //Getters
 
-    public ArrayList<Double> getPathAngle() {
-        return pathAngle;
-    }
+    public ArrayList<Point> getPath() { return path; }
 
-    public int getPathLength(){
-        return pathLength;
-    }
+    public ArrayList<Double> getPathAngle() { return pathAngle; }
+
+    public int getPathLength(){ return pathLength; }
 }

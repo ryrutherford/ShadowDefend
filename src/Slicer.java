@@ -3,12 +3,24 @@ import bagel.Image;
 import bagel.util.Point;
 import bagel.util.Rectangle;
 import org.jetbrains.annotations.NotNull;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 public class Slicer implements Attackable{
+    /*
+    health: the remaining health of the slicer
+    speed: the speed at which the slicer moves (in px/frame)
+    locationIndex: the index of the slicer's location in the path list of the Path object in the ShadowDefend class
+    spawnDelayF: the spawn delay in frames of the slicer
+    reward: the cash reward for eliminating the slicer
+    penalty: the penalty (in lives) for the slicer finishing the path without dying
+    wave: the wave the slicer belongs to
+    location: the location of the slicer
+    type: the type of slicer (slicer, superslicer, megaslicer, apexslicer)
+    children: a list of all the children of the slicer
+    bounding: the bounding box of the slicer
+     */
     private double health, speed;
     private int locationIndex, spawnDelayF, reward, penalty, wave;
     private Point location;
@@ -63,13 +75,14 @@ public class Slicer implements Attackable{
         this.wave = wave;
     }
 
+    //a method to deduct health from a slicer after a collision with ammo
     @Override
     public void deductHealth(int deduction){
         this.health -= deduction;
 
         //if the deduction forced the health to hit 0 or below =>
         //the locationIndex is set to -1 so the slicer disappears off the screen
-        //if the slicer has children then they will each be placed at the location of their parent slicer (slighlty spread apart)
+        //if the slicer has children then they will each be placed at the location of their parent slicer (slightly spread apart)
         if(this.health <= 0){
             this.health = 0;
             int i = 0;
@@ -86,8 +99,11 @@ public class Slicer implements Attackable{
         }
     }
 
+    //a method to draw a slicer on the screen
     public void drawSlicer(int timescaleMultiplier, Path path){
+        //if the locationIndex is not -1 then the slicer is somewhere on the path
         if(this.locationIndex != - 1){
+            //if the locationIndex is a valid pathIndex then we get the slicers location, bounding, and draw it on the screen
             if(locationIndex < path.getPathLength()) {
                 this.location = path.getPath().get(locationIndex);
                 this.bounding = this.image.getBoundingBoxAt(this.location);
@@ -96,10 +112,17 @@ public class Slicer implements Attackable{
                 this.image.draw(location.x,
                         location.y,
                         new DrawOptions().setRotation(path.getPathAngle().get(locationIndex)));
+
+                //we update the location index based on the speed and timeScaleMultiplier
+                //I multiply by 4 because each point in the path is 0.25px apart and we want to work in 1px increments
                 this.locationIndex += timescaleMultiplier*(int)(this.speed*4);
             }
+            //if the locationIndex is invalid then we set the locationIndex to -1 and spawnDelayF to -1
             else{
                 this.locationIndex = - 1;
+
+                //a spawnDelayF of -1 indicates that the slicer's penalty needs to be deducted from the user's lives
+                this.spawnDelayF = -1;
             }
         }
 
@@ -135,16 +158,8 @@ public class Slicer implements Attackable{
         return children;
     }
 
-    public int getWave(){
-        return this.wave;
-    }
-
     public int getSpawnDelayF(){
         return this.spawnDelayF;
-    }
-
-    public Image getImage(){
-        return this.image;
     }
 
     public Rectangle getBounding() { return this.bounding; }
@@ -153,10 +168,6 @@ public class Slicer implements Attackable{
 
     public void setHealth(double health) {
         this.health = health;
-    }
-
-    public void setLocation(Point location) {
-        this.location = location;
     }
 
     public void setLocationIndex(int locationIndex) {
