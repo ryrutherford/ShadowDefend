@@ -8,6 +8,9 @@
 .idea/**/dictionaries
 .idea/**/shelf
 
+# UML stuff
+src/src.plantuml
+
 # Generated files
 .idea/**/contentModel.xml
 

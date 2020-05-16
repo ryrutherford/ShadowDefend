@@ -50,7 +50,7 @@ public class ShadowDefend extends AbstractGame {
     private final Font defaultTextFont = new Font("res/fonts/DejaVuSans-Bold.ttf", 16),
             cashFont = new Font("res/fonts/DejaVuSans-Bold.ttf", 36);
     private Stack<String> status = new Stack<String>();
-    private int lives = 25, wave = 1, cash = 500, framesPassed = 0, timescaleMultiplier = 1, level = 1;
+    private int lives = 25, wave = 1, cash = 5000, framesPassed = 0, timescaleMultiplier = 1, level = 1;
     private boolean sWasPressed = false, horizontal = true;
     private Path path;
     private List<List<Slicer>> slicers;
@@ -523,6 +523,15 @@ public class ShadowDefend extends AbstractGame {
                 //if the user is still alive we need to load the next wave
                 else {
                     this.wave++;
+                    //removing all ammo from towers and removing airsupport
+                    for(Tower t: this.towers){
+                        t.setAmmo(new ArrayList<Ammo>());
+
+                        //any active airsupport from the previous wave shouldn't be drawn anymore so we set the bounding to null
+                        if(t.getType().equals("airsupport")){
+                            t.setBounding(null);
+                        }
+                    }
                     //if we have run all waves, then we increase the level and try to load the next map
                     if (this.wave > this.slicers.size()) {
                         this.level++;

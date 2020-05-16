@@ -85,7 +85,7 @@ public class ActiveTower extends Tower {
             }
             //if there is a slicer in range: we will add a new projectile to the ammo list, reset the timeToShoot and set the direction of the tank based on this targe
             if(slicerInRange.size() > 0) {
-                this.getAmmo().add(new Projectile(this.getLocation(), this.getType(), this.range));
+                this.getAmmo().add(new Projectile(this.getLocation(), this.getType()));
                 this.timeToShoot = this.cooldown;
 
                 Slicer target = slicerInRange.get(0);

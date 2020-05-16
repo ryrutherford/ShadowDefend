@@ -2,7 +2,6 @@ import bagel.DrawOptions;
 import bagel.Image;
 import bagel.util.Point;
 import bagel.util.Rectangle;
-import org.jetbrains.annotations.NotNull;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -31,7 +30,7 @@ public class Slicer implements Attackable{
     private List<Slicer> children;
     private Rectangle bounding;
 
-    public Slicer(@NotNull String type, int wave, int spawnDelayF) {
+    public Slicer(String type, int wave, int spawnDelayF) {
         this.type = type;
         switch(type){
             case "slicer":
@@ -142,10 +141,6 @@ public class Slicer implements Attackable{
 
     public double getHealth() {
         return health;
-    }
-
-    public double getSpeed() {
-        return speed;
     }
 
     public int getReward() {

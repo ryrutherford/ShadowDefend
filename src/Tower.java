@@ -52,8 +52,10 @@ public abstract class Tower {
             //then damageSlicers will return true and the ammo should be removed
             boolean remove = a.damageSlicers(slicers, timeScaleMultiplier);
 
-            //drawing the ammo on the screen with appropriate direction
-            a.getImage().draw(a.getLocation().x, a.getLocation().y, new DrawOptions().setRotation(this.direction));
+            if(remove == false) {
+                //drawing the ammo on the screen with appropriate direction
+                a.getImage().draw(a.getLocation().x, a.getLocation().y);
+            }
 
             if(remove){
                 itr.remove();
@@ -128,5 +130,9 @@ public abstract class Tower {
 
     public void setBounding(Rectangle bounding) {
         this.bounding = bounding;
+    }
+
+    public void setAmmo(List<Ammo> ammo){
+        this.ammo = ammo;
     }
 }
