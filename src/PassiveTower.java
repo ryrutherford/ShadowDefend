@@ -12,6 +12,9 @@ public class PassiveTower extends Tower {
     //drop time: the time in frames left before an explosive is dropped
     private int speed, dropTime;
 
+    /**
+     * @param type: the type of passive tower (it will only ever be airsupport at this point but if more passive towers were added then the type would be needed)
+     */
     public PassiveTower(String type) {
         this.setImage(new Image("res/images/" + type + ".png"));
         this.setType(type);
@@ -25,7 +28,11 @@ public class PassiveTower extends Tower {
         this.dropTime = ThreadLocalRandom.current().nextInt(0, 181);
     }
 
-    //attack method used to drop new explosives when drop time = 0, move the tower across the screen, and draw the tower's ammo on the screen
+    /**
+     * attack method used to drop new explosives when drop time = 0, move the tower across the screen, and draw the tower's ammo on the screen
+     * @param slicers: a list of the slicers in the current wave, used to decide which slicer(s) to attack (passed to the draw ammo method)
+     * @param timeScaleMultiplier: the timeScaleMultiplier from ShadowDefend used to affect movement of towers
+     */
     @Override
     public void attack(List<Slicer> slicers, int timeScaleMultiplier) {
 

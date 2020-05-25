@@ -4,5 +4,8 @@
  * I made the attackable interface in case other enemies with different characteristics than slicers are added later on
 */
 public interface Attackable {
+    /**
+     * @param deduction: the amount of health to be deducted from an Object that can be attacked
+     */
     void deductHealth(int deduction);
 }

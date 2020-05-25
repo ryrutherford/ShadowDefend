@@ -30,6 +30,11 @@ public class Slicer implements Attackable{
     private List<Slicer> children;
     private Rectangle bounding;
 
+    /**
+     * @param type: the type of slicer (slicer, superslicer, apexslicer, megaslicer)
+     * @param wave: the wave which the slicer belongs to
+     * @param spawnDelayF: the spawnDelay in frames of the slicer
+     */
     public Slicer(String type, int wave, int spawnDelayF) {
         this.type = type;
         switch(type){
@@ -84,7 +89,10 @@ public class Slicer implements Attackable{
         this.wave = wave;
     }
 
-    //a method to deduct health from a slicer after a collision with ammo
+    /**
+     * a method to deduct health from a slicer after a collision with ammo
+     * @param deduction: the amount of health to be deducted
+     */
     @Override
     public void deductHealth(int deduction){
         this.health -= deduction;
@@ -108,7 +116,11 @@ public class Slicer implements Attackable{
         }
     }
 
-    //a method to draw a slicer on the screen
+    /**
+     * a method to draw a slicer on the screen
+     * @param timescaleMultiplier: the timeScaleMultiplier from ShadowDefend used to affect movement speed
+     * @param path: the Path along the polylines of the map from ShadowDefend
+     */
     public void drawSlicer(int timescaleMultiplier, Path path){
         //if the locationIndex is not -1 then the slicer is somewhere on the path
         if(this.locationIndex != - 1){
@@ -139,42 +151,72 @@ public class Slicer implements Attackable{
 
     //Getters
 
+    /**
+     * @return the current health of this slicer
+     */
     public double getHealth() {
         return health;
     }
 
+    /**
+     * @return the reward value in $ of the slicer
+     */
     public int getReward() {
         return reward;
     }
 
+    /**
+     * @return the penalty value of the slicer in lives
+     */
     public int getPenalty() {
         return penalty;
     }
 
+    /**
+     * @return the locationIndex in the Point list from the Path object from ShadowDefend for this slicer
+     */
     public int getLocationIndex() {
         return locationIndex;
     }
 
+    /**
+     * @return the Point of this slicer on the screen
+     */
     public Point getLocation() {
         return location;
     }
 
+    /**
+     * @return a list of all the children slicers of this slicer
+     */
     public List<Slicer> getChildren() {
         return children;
     }
 
+    /**
+     * @return the spawn delay in frames of this slicer
+     */
     public int getSpawnDelayF(){
         return this.spawnDelayF;
     }
 
+    /**
+     * @return the Rectangle corresponding to the bounding box of this slicer
+     */
     public Rectangle getBounding() { return this.bounding; }
 
     //Setters
 
+    /**
+     * @param health: the new health value of the slicer
+     */
     public void setHealth(double health) {
         this.health = health;
     }
 
+    /**
+     * @param locationIndex: the new locationIndex of this slicer
+     */
     public void setLocationIndex(int locationIndex) {
         this.locationIndex = locationIndex;
     }

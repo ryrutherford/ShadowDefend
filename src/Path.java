@@ -17,13 +17,21 @@ public class Path {
     private int pathLength;
     private Rectangle gameScreen;
 
+    /**
+     * @param polyline: the polyline from the TiledMap from ShadowDefend
+     * @param gameScreen: the Rectangle representing the valid game screen
+     * (I excluded the buy panel and status panel from the game screen because I didn't want slicers moving over the panels)
+     */
     public Path(List<Point> polyline, Rectangle gameScreen){
         this.gameScreen = gameScreen;
         generatePath(polyline);
         this.pathLength = path.size();
     }
 
-    //method to generate a path based on a polyline
+    /**
+     * method to generate a path based on a polyline
+     * @param polyline: the polyline from the TiledMap from ShadowDefend
+     */
     public void generatePath(List<Point> polyline){
         this.path = new ArrayList<>();
         this.pathAngle = new ArrayList<>();
@@ -81,9 +89,18 @@ public class Path {
 
     //Getters
 
+    /**
+     * @return the list of Points that represents the path along the polylines of the map
+     */
     public ArrayList<Point> getPath() { return path; }
 
+    /**
+     * @return the list of doubles that represents the angle the slicer should be facing in radians at each point in the path attribute
+     */
     public ArrayList<Double> getPathAngle() { return pathAngle; }
 
+    /**
+     * @return the length of the path list
+     */
     public int getPathLength(){ return pathLength; }
 }

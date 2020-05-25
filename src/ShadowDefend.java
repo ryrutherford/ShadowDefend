@@ -50,7 +50,7 @@ public class ShadowDefend extends AbstractGame {
     private final Font defaultTextFont = new Font("res/fonts/DejaVuSans-Bold.ttf", 16),
             cashFont = new Font("res/fonts/DejaVuSans-Bold.ttf", 36);
     private Stack<String> status = new Stack<String>();
-    private int lives = 25, wave = 1, cash = 5000, framesPassed = 0, timescaleMultiplier = 1, level = 1;
+    private int lives = 25, wave = 1, cash = 500, framesPassed = 0, timescaleMultiplier = 1, level = 1;
     private boolean sWasPressed = false, horizontal = true;
     private Path path;
     private List<List<Slicer>> slicers;
@@ -59,7 +59,9 @@ public class ShadowDefend extends AbstractGame {
     private List<Tower> towers = new ArrayList<Tower>();
     private Tower towerToBePlaced;
 
-    //constructor
+    /**
+     * @param filename: the filename of the file that contains wave information
+     */
     public ShadowDefend(String filename) {
         super(WIDTH, HEIGHT, "ShadowDefend");
 
@@ -79,7 +81,10 @@ public class ShadowDefend extends AbstractGame {
         initializeSlicersFromText(filename);
     }
 
-    //method to initialize the slicers list with slicers based on a text file
+    /**
+     * helper method to initialize the slicers list with slicers based on a text file
+     * @param filename: the filename of the file that contains wave information
+     */
     private void initializeSlicersFromText(String filename){
         BufferedReader fileReader = null;
         this.slicers = new ArrayList<List<Slicer>>();
@@ -148,7 +153,9 @@ public class ShadowDefend extends AbstractGame {
 
     }
 
-    //method to draw the buy panel on the screen
+    /**
+     * method to draw the buy panel on the screen
+     */
     private void drawBuyPanel(){
         buyPanel.drawFromTopLeft(0,0);
         //drawing the purchase items
@@ -190,7 +197,9 @@ public class ShadowDefend extends AbstractGame {
         }
     }
 
-    //method to draw the status panel on the screen
+    /**
+     * method to draw the status panel on the screen
+     */
     private void drawStatusPanel(){
         statusPanel.drawFromTopLeft(0, Window.getHeight() - 25);
 
@@ -211,6 +220,9 @@ public class ShadowDefend extends AbstractGame {
         this.defaultTextFont.drawString("Lives: " + this.lives, Window.getWidth() - 100, Window.getHeight() - 6);
     }
 
+    /**
+     * method to update the status of the game
+     */
     private void updateStatus(){
 
         //when the wave is done (sWasPressed == false) and the previous status was Wave In Progress => we need to make the status Awaiting Start
@@ -231,7 +243,9 @@ public class ShadowDefend extends AbstractGame {
         }
     }
 
-    //method to draw all the towers on the game screen
+    /**
+     * method to draw all the towers on the game screen
+     */
     private void drawTowers(){
         Iterator<Tower> itr = this.towers.iterator();
         while(itr.hasNext()){
@@ -266,7 +280,10 @@ public class ShadowDefend extends AbstractGame {
         }
     }
 
-    //method to draw slicers on the screen
+    /**
+     * method to draw slicers on the screen
+     * @return: a boolean indicating whether the wave is complete (all slicers have been eliminated or finished the path
+     */
     private boolean drawSlicers() {
         boolean waveDone = true;
 
@@ -312,8 +329,10 @@ public class ShadowDefend extends AbstractGame {
         return waveDone;
     }
 
-
-    //a method called when the user left clicks anywhere on the screen
+    /**
+     * a method called when the user left clicks anywhere on the screen (in order to check if the user clicked on a tower to buy)
+     * @param input: the Input instance from the update method, used to check where the user clicked
+     */
     private void selectTower(Input input) {
 
         //we must first detect which purchase item (if any) was clicked
@@ -346,10 +365,13 @@ public class ShadowDefend extends AbstractGame {
         }
     }
 
-    //once a tower has been selected, the placeTower method will be called
-    //it will draw the tower at the mouse position (if the position is valid for placing a tower)
-    //it will place the tower when the user left clicks on a valid position
-    //it will remove the towerToBePlaced and stop placing the tower if the user right clicks
+    /**
+     * once a tower has been selected, the placeTower method will be called
+     * it will draw the tower at the mouse position (if the position is valid for placing a tower)
+     * it will place the tower when the user left clicks on a valid position
+     * it will remove the towerToBePlaced and stop placing the tower if the user right clicks
+     * @param input: the Input instance from the update method, used to check where the user clicked
+     */
     private void placeTower(Input input){
         //checking for valid mouse position for placing towers
         if(!this.map.hasProperty((int)input.getMouseX(), (int)input.getMouseY(), "blocked")
@@ -402,7 +424,11 @@ public class ShadowDefend extends AbstractGame {
         }
     }
 
-    //helper method used in the placeTower method to detect whether the current mouse position intersects with a current tower
+    /**
+     * helper method used in the placeTower method to detect whether the current mouse position intersects with a current tower
+     * @param mousePosition: the Point representing where the mouse is
+     * @return a boolean indicating whether the current mouse position is valid for placing a tower (false) or not (true)
+     */
     private boolean mouseIntersectsTower(Point mousePosition){
         switch(this.towerToBePlaced.getType()){
             case "airsupport":
@@ -445,7 +471,9 @@ public class ShadowDefend extends AbstractGame {
         return false;
     }
 
-    //method to reset the game state (we don't reset the lives because lives will be reset after the user restarts the game
+    /**
+     * method to reset the game state (we don't reset the lives because lives will be reset after the user restarts the game
+     */
     private void resetState() {
         this.map = new TiledMap("res/levels/1.tmx");
         this.initializeSlicersFromText("res/levels/waves.txt");
@@ -458,6 +486,9 @@ public class ShadowDefend extends AbstractGame {
         this.status.push("Awaiting Start");
     }
 
+    /**
+     * @param input: an Input object used to detect keys that were pressed, mouse position, mouse clicks etc.
+     */
     @Override
     protected void update(Input input) {
 

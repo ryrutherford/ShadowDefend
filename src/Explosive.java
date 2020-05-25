@@ -12,6 +12,9 @@ public class Explosive extends Ammo{
     //the timeToDetonate corresponds to how much time is left (in frames) before the explosive explodes and causes damage to slicers
     private int radius, timeToDetonate;
 
+    /**
+     * @param location: the Point on the screen at which the explosive was dropped
+     */
     public Explosive(Point location){
         this.radius = 200;
         this.setLocation(location, new Rectangle(location.x - 200, location.y - 200, 2*this.radius, 2*this.radius));
@@ -21,8 +24,13 @@ public class Explosive extends Ammo{
         this.timeToDetonate = 120;
     }
 
-    //method that damages all slicers in the explosives radius when timeToDetonate is 0
-    //returns true when an explosive detonates, false otherwise
+    /**
+     * method that damages all slicers in the explosives radius when timeToDetonate is 0
+     * returns true when an explosive detonates, false otherwise
+     * @param slicers: a list of slicers in the current wave, used to decide which slicers will be impacted by the explosion
+     * @param timeScaleMultiplier: the timeScaleMultiplier from ShadowDefend used to affect the speed at which the timeToDetonate decreases
+     * @return a boolean indicating whether the explosive exploded (true) or not (false)
+     */
     @Override
     public boolean damageSlicers(List<Slicer> slicers, int timeScaleMultiplier){
         //if the timeToDetonate is 0 then the explosive can damage all slicers within its radius

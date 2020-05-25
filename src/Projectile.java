@@ -13,6 +13,10 @@ public class Projectile extends Ammo{
     private Slicer target;
     private int speed;
 
+    /**
+     * @param location: the initial Point of the projectile on the screen
+     * @param type: the type of projectile (tank, supertank)
+     */
     public Projectile(Point location, String type) {
         this.setImage(new Image("res/images/" + type + "_projectile.png"));
         this.setLocation(location, this.getImage().getBoundingBoxAt(location));
@@ -27,6 +31,11 @@ public class Projectile extends Ammo{
         }
     }
 
+    /**
+     * @param slicers: a list of slicers for the current wave that is used to choose a target for the projectile
+     * @param timeScaleMultiplier: the timeScaleMultiplier from ShadowDefend used to affect projectile speed
+     * @return
+     */
     public boolean damageSlicers(List<Slicer> slicers, int timeScaleMultiplier){
         //if the target is null and there is a slicer in the slicers list, we initialize the target with the first slicer in the list
         if(this.target == null && slicers.size() > 0){

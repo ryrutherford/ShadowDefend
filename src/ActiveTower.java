@@ -17,6 +17,9 @@ public class ActiveTower extends Tower {
     private int radius, cooldown, timeToShoot;
     private Rectangle range;
 
+    /**
+     * @param type: the type of ActiveTower (tank, supertank)
+     */
     public ActiveTower(String type){
         this.setImage(new Image("res/images/" + type + ".png"));
         this.setType(type);
@@ -35,6 +38,10 @@ public class ActiveTower extends Tower {
         this.timeToShoot = this.cooldown;
     }
 
+    /**
+     * @param slicers: a list of the slicers in the current wave, used to decide which slicer(s) to attack and to pass to the drawAmmo method
+     * @param timeScaleMultiplier: the timeScaleMultiplier from ShadowDefend used to affect movement of towers
+     */
     @Override
     public void attack(List<Slicer> slicers, int timeScaleMultiplier) {
 
