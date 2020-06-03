@@ -326,6 +326,9 @@ public class ShadowDefend extends AbstractGame {
                 this.cash += s.getReward();
             }
         }
+        if(waveDone){
+            this.cash += 150 + this.wave*100;
+        }
         return waveDone;
     }
 
