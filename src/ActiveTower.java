@@ -8,6 +8,12 @@ import java.util.List;
 /**
  * ActiveTower class represents tanks and supertanks (towers that detect enemies)
  */
+/**
+ * I am aware that we are expected to create child classes for the different types of active towers.
+ * I did not do this because there is no difference between a tank and a supertank besides the value of its attributes
+ * If I created child classes for each type of tank I would simply be creating more repeated code as none of the children would have their own implementation of methods
+ * I also understand that using a switch statement on the tower type is not very good design but based on my implementation I feel as though it's the lesser of two evils
+ */
 public class ActiveTower extends Tower {
 
     //radius: the shooting range of the tower in either direction (2*radius = length and width of this.range)

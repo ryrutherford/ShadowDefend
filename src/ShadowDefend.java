@@ -577,6 +577,8 @@ public class ShadowDefend extends AbstractGame {
                             this.towers = new ArrayList<Tower>();
                             this.wave = 1;
                             this.cash = 500;
+                            //I originally had it so the lives would not reset after a level is finished but the video had it this way so I changed it
+                            this.lives = 25;
                             this.towerToBePlaced = null;
                         } catch (Exception e) {
                             //setting the wave to -1 indicates that the player has won the game
