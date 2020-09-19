@@ -7,10 +7,7 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * I am aware that we are expected to create child classes for the different types of slicers.
- * I did not do this because there is no difference between a slicer and a superslicer etc. besides the value of its attributes
- * If I created child classes for each type of slicer I would simply be creating more repeated code as none of the children would have their own implementation of methods
- * I also understand that using a switch statement on the slicer type is not very good design but based on my implementation I feel as though it's the lesser of two evils
+ * All enemies are slicers but a Slicer's health, speed, penalty, and reward will determine what type of slicer it is (i.e. which image gets rendered)
  */
 public class Slicer implements Attackable{
     /*
